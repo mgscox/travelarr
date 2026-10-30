@@ -232,7 +232,9 @@ def pick_media(video, pref: str):
     """The version of video to copy; None when Plex has no file for it.
     'original': the largest version Plex did not optimize (what a single-version
     item always was); 'smallest': the fewest bytes; a cap ('2160' ... 'sd'): the
-    highest resolution, then bitrate, at or under it, else the smallest."""
+    highest resolution at or under it, then a version Plex did not optimize (an
+    'Original Quality' optimized copy can be bigger than the original), then
+    bitrate; else the smallest."""
     media = [m for m in video.media if m.parts]
     if len(media) <= 1:
         return media[0] if media else None
@@ -243,7 +245,7 @@ def pick_media(video, pref: str):
         fit = [m for m in media if (_lines(m) or cap + 1) <= cap]
         if not fit:
             return min(media, key=_size)
-        return max(fit, key=lambda m: (_lines(m), m.bitrate or 0, _size(m)))
+        return max(fit, key=lambda m: (_lines(m), not _optimized(m), m.bitrate or 0, _size(m)))
     return max([m for m in media if not _optimized(m)] or media, key=_size)
 
 

@@ -2642,6 +2642,31 @@ class VersionTest(PlexFixture):
         r = self.queue("101")
         self.assertEqual((r["added"], r["bytes"]), (1, 100_000))
 
+    def test_at_the_same_resolution_the_original_wins(self):
+        # as on a real server: an 'Original Quality' optimized copy of a 4K file, bigger and of a higher bitrate
+        big = f"{MOVIES}/Heat (1995)/Plex Versions/Original Quality/Heat (1995).mp4"
+        self.heat["versions"] = []
+        self.fake.add_version(self.heat, 1504, big, 600_000, res="4k", width=3840, bitrate=90_000, optimized=True)
+        for pref in ("2160", "original"):
+            self.prefer(pref)
+            self.assertEqual(self.pick(), ([(1001, HEAT)], 300_000), pref)
+        self.prefer("1080")                                                # nothing fits: the smallest
+        self.assertEqual(self.pick(), ([(1001, HEAT)], 300_000))
+
+    def test_two_originals_of_one_resolution(self):
+        loose = next(x for x in self.fake.movies if x["rk"] == 102)       # 120,000 bytes
+        loose.update(res="1080", width=1920, bitrate=2_000)
+        self.fake.add_version(loose, 1505, f"{MOVIES}/Loose Movie - Remux.mkv", 840_000, res="1080", width=1920,
+                              bitrate=14_000)
+        same = next(e for e in self.fake.episodes if e["rk"] == 201)      # two identical files
+        same.update(res="1080", width=1920, bitrate=5_000)
+        self.fake.add_version(same, 2505, f"{TV}/Show A/Season 01/Show A - S01E01 - Pilot (copy).mkv", same["size"],
+                              res="1080", width=1920, bitrate=5_000)
+        for pref, pid in (("2160", 1505), ("1080", 1505), ("720", 1002), ("sd", 1002)):
+            self.prefer(pref)
+            self.assertEqual(self.pick("102")[0][0][0], pid, pref)
+            self.assertEqual(len(self.pick("201")[0]), 1, pref)
+
     def test_optimized_version_without_the_original(self):
         self.prefer("original")
         self.heat.update(file=self.OPT, part=1501, size=100_000, optimized=True, versions=[])
