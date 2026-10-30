@@ -624,7 +624,8 @@ function videoBody(d) {
       class: 'btn small', onclick: async () => { for (const j of active) await post(`/api/jobs/${j.id}/cancel`); S.dirty = true; openItem(d.ratingKey); },
     }, 'Cancel'));
   }
-  actions.append(resyncButton(d));
+  const resync = resyncButton(d);  // null until the title is on the device; append(null) would show "null"
+  if (resync) actions.append(resync);
   if (st === 'done') actions.append(h('button', {
     class: 'btn small danger', onclick: async () => {
       if (!confirm(`Delete "${d.title}" from ${dev()}?`)) return;
